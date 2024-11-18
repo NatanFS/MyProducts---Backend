@@ -27,10 +27,8 @@ def get_dashboard_metrics(
     """
     Fetch metrics for the dashboard, including sales summary.
     """
-    # Base query for products
     query = db.query(models.Product).filter(models.Product.user_id == current_user.id)
 
-    # Apply date range filters if provided
     if start_date:
         start_datetime = datetime.combine(start_date, time.min)
         query = query.filter(models.Product.created_at >= start_datetime)

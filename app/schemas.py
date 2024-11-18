@@ -3,7 +3,6 @@ from typing import Optional, List
 from datetime import datetime, date
 from fastapi import Form,  UploadFile
 
-# User Schemas
 class UserBase(BaseModel):
     name: str = Field(..., min_length=3, max_length=50, description="Name must be between 3 and 50 characters")
     email: EmailStr = Field(..., description="A valid email address")
@@ -36,9 +35,6 @@ class UserInDB(User):
     hashed_password: str
 
 
-
-
-# Report Schemas
 class SalesSummary(BaseModel):
     start_date: Optional[date]
     end_date: Optional[date]
@@ -166,7 +162,7 @@ class ProductUpdateInput:
             None,
             description="File upload for product image.",
         ),
-        code: str = Form(
+        code: Optional[str] = Form(
             ...,
             max_length=50,
             description="Unique product code or SKU (max 50 characters).",
@@ -218,7 +214,7 @@ class MostSoldProduct(BaseModel):
         orm_mode = True
 
 class MostSoldCategory(BaseModel):
-    category: Optional[str]  # Optional for uncategorized products
+    category: Optional[str] 
     total_sold: int
 
     class Config:

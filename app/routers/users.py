@@ -4,8 +4,10 @@ from app import schemas, models, database, auth
 from fastapi.security import OAuth2PasswordRequestForm
 from app.database import engine, get_db
 from sqlalchemy.orm import sessionmaker
+from app.schemas import UserCreate
 import shutil
 import os
+from pydantic import ValidationError
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -22,24 +24,35 @@ def create_user(
     profile_image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    db_user = db.query(models.User).filter(models.User.email == email).first()
+    try:
+        validated_user = UserCreate(
+            name=name,
+            email=email,
+            password=password,
+            profile_image=profile_image
+        )
+    except ValidationError:
+        raise 
+
+    db_user = db.query(models.User).filter(models.User.email == validated_user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email is already registered")
     
     upload_folder = "uploads/profile_images"
     os.makedirs(upload_folder, exist_ok=True)
     file_path = os.path.join(upload_folder, profile_image.filename)
-    
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(profile_image.file, buffer)
     
-    hashed_password = auth.get_password_hash(password)
+    hashed_password = auth.get_password_hash(validated_user.password)
+    
     new_user = models.User(
-        name=name,
-        email=email,
+        name=validated_user.name,
+        email=validated_user.email,
         profile_image=file_path,
         hashed_password=hashed_password
     )
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)

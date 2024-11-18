@@ -33,10 +33,6 @@ def create_product(
     current_user: User = Depends(get_current_user)
 ):
     category_id_int = int(category_id) if category_id else None
-    existing_product = db.query(Product).filter(Product.code == code).first()
-    if existing_product:
-        raise HTTPException(status_code=400, detail="Product code already exists")
-
     file_path = None
 
     if image:
