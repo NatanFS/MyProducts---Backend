@@ -18,10 +18,6 @@ def create_category(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user), 
 ):
-    db_category = db.query(Category).filter(Category.name == category.name).first()
-    if db_category:
-        raise HTTPException(status_code=400, detail="Category already exists")
-
     new_category = Category(**category.dict(), user_id=current_user.id)
 
     db.add(new_category)
