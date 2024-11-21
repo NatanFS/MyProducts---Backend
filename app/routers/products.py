@@ -120,7 +120,6 @@ def get_products(
     
     products = paginated_query.all()
 
-    base_url = request.base_url
     for product in products:
         if product.image:
             normalized_path = product.image.replace("\\", "/")

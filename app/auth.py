@@ -65,8 +65,7 @@ def get_current_user(
         raise credentials_exception
 
     if user.profile_image:
-        base_url = request.base_url
         normalized_path = user.profile_image.replace("\\", "/")
-        user.profile_image = f"{base_url}uploads/{normalized_path.split('uploads/')[-1]}"
+        user.profile_image = f"{normalized_path.split('uploads/')[-1]}"
 
     return user
