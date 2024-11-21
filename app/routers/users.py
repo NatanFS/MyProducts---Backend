@@ -4,10 +4,13 @@ from app import schemas, models, database, auth
 from fastapi.security import OAuth2PasswordRequestForm
 from app.database import engine, get_db
 from sqlalchemy.orm import sessionmaker
-from app.schemas import UserCreate
-import shutil
 import os
 from pydantic import ValidationError
+from app.supabase import create_client, SUPABASE_URL, SUPABASE_KEY
+from dotenv import load_dotenv
+
+load_dotenv()
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -25,31 +28,35 @@ def create_user(
     db: Session = Depends(get_db)
 ):
     try:
-        validated_user = UserCreate(
+        validated_user = schemas.UserCreate(
             name=name,
             email=email,
             password=password,
-            profile_image=profile_image
+            profile_image=profile_image.filename
         )
-    except ValidationError:
-        raise 
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail="Invalid user data")
 
     db_user = db.query(models.User).filter(models.User.email == validated_user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email is already registered")
     
-    upload_folder = "uploads/profile_images"
-    os.makedirs(upload_folder, exist_ok=True)
-    file_path = os.path.join(upload_folder, profile_image.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(profile_image.file, buffer)
-    
+    bucket_name = "profile_images"
+    file_name = f"{validated_user.email}_{profile_image.filename}"
+    file_content = profile_image.file.read()
+
+    response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="Failed to upload profile image")
+
+    profile_image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
+
     hashed_password = auth.get_password_hash(validated_user.password)
     
     new_user = models.User(
         name=validated_user.name,
         email=validated_user.email,
-        profile_image=file_path,
+        profile_image=profile_image_url,
         hashed_password=hashed_password
     )
 

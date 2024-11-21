@@ -6,13 +6,14 @@ from app.models import Product, User, Category
 from app.schemas import ProductCreate, ProductResponse, ProductPaginatedResponse, ProductUpdateInput
 from app.auth import get_current_user
 from typing import List, Optional
-from sqlalchemy.sql import func
-from datetime import datetime
 import os
-from pathlib import Path
-import shutil
 from math import ceil
+from dotenv import load_dotenv
 from pydantic import ValidationError
+from app.supabase import SUPABASE_URL, SUPABASE_KEY, create_client
+
+load_dotenv()
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 router = APIRouter(
     prefix="/products",
@@ -33,15 +34,18 @@ def create_product(
     current_user: User = Depends(get_current_user)
 ):
     category_id_int = int(category_id) if category_id else None
-    file_path = None
+    image_url = None
 
     if image:
-        upload_folder = "uploads/product_images"
-        os.makedirs(upload_folder, exist_ok=True)
-        file_path = os.path.join(upload_folder, image.filename)
+        bucket_name = "product_images"
+        file_name = f"{current_user.id}_{image.filename}" 
+        file_content = image.file.read()
 
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
+        response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to upload image")
+
+        image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
 
     new_product = Product(
         name=name,
@@ -49,14 +53,14 @@ def create_product(
         price=price,
         stock=stock,
         sales=sales,
-        image=file_path,  
+        image=image_url,
         code=code,
         category_id=category_id_int,
         user_id=current_user.id,
     )
 
     try:
-        ProductResponse.from_orm(new_product)  
+        ProductResponse.from_orm(new_product)
     except ValidationError as e:
         raise e
     
@@ -154,15 +158,18 @@ async def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
     
     if product.image:
-        UPLOAD_DIR = "uploads/product_images"
-        Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
-
-        image_path = Path(UPLOAD_DIR) / product.image.filename
-        with open(image_path, "wb") as f:
-            f.write(await product.image.read())
-
-        base_url = str(request.base_url).rstrip("/")
-        db_product.image = f"{base_url}/{UPLOAD_DIR}/{product.image.filename}"
+        bucket_name = "product_images"
+        file_name = f"{product_id}_{product.image.filename}"
+        
+        file_content = await product.image.read()
+        
+        response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to upload image")
+        
+        image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
+        db_product.image = image_url
 
     if product.name:
         db_product.name = product.name
