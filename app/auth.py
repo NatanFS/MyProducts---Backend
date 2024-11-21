@@ -8,10 +8,14 @@ from sqlalchemy.orm import Session
 from app import schemas, models, database
 from app.database import get_db
 from fastapi import Request
+from dotenv import load_dotenv
+import os
 
-SECRET_KEY = "your_secret_key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 24 * 60
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+AUTH_ALGORITHM = os.getenv("AUTH_ALGORITHM") 
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -35,7 +39,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=AUTH_ALGORITHM)
     return encoded_jwt
 
 def get_current_user(
@@ -49,7 +53,7 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[AUTH_ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
