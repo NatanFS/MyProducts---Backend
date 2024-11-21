@@ -124,7 +124,7 @@ def get_products(
     for product in products:
         if product.image:
             normalized_path = product.image.replace("\\", "/")
-            product.image = f"{base_url}uploads/{normalized_path.split('uploads/')[-1]}"
+            product.image = f"{normalized_path.split('uploads/')[-1]}"
 
     serialized_products = [ProductResponse.from_orm(product) for product in products]
 
