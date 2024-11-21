@@ -4,16 +4,20 @@ from app.models import Product, Category, User
 from sqlalchemy.exc import SQLAlchemyError
 from app.database import SessionLocal 
 
+EMAIL = "natan@gmail.com"
+
 def seed_database(db: Session):
+   
     try:
         with db.begin():  
+            user = db.query(User).filter(User.email == EMAIL ).first()
             category_names = [
                 "Electronics", "Books", "Clothing", "Food", 
                 "Toys", "Sports", "Furniture", "Beauty"
             ]
             categories = []
             for name in category_names:
-                category = Category(name=name, user_id=1) 
+                category = Category(name=name, user_id=user.id) 
                 db.add(category)
                 categories.append(category)
             db.commit()
@@ -21,11 +25,8 @@ def seed_database(db: Session):
         print("An error occurred during seeding. Rolling back...")
         print(str(e))
 
-
     try:
         with db.begin():
-            
-            
             products = [
                 {
                     "name": "Wireless Mouse",
@@ -331,8 +332,7 @@ def seed_database(db: Session):
 
             for product_data in products:
                 fake_created_at = datetime.fromisoformat(product_data["fake_created_at"].replace("Z", "+00:00"))
-                
-                user = db.query(User).filter(User.email == "natanlipf@gmail.com").first()
+                user = db.query(User).filter(User.email == EMAIL ).first()
                 product = Product(
                     name=product_data["name"],
                     description=product_data["description"],

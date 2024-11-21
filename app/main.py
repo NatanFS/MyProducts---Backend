@@ -7,6 +7,7 @@ from app.routers import users, reports, products, categories
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
+import uvicorn
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -83,3 +84,8 @@ app.include_router(users.router)
 app.include_router(reports.router)
 app.include_router(products.router)
 app.include_router(categories.router)
+
+
+if __name__ == "__main__":
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
