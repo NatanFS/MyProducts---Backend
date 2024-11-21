@@ -11,6 +11,7 @@ from math import ceil
 from dotenv import load_dotenv
 from pydantic import ValidationError
 from app.supabase import SUPABASE_URL, SUPABASE_KEY, create_client
+import uuid
 
 load_dotenv()
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -38,13 +39,17 @@ def create_product(
 
     if image:
         bucket_name = "product_images"
-        file_name = f"{current_user.id}_{image.filename}" 
+        
+        unique_id = uuid.uuid4().hex
+        file_extension = image.filename.split(".")[-1]  
+        file_name = f"{current_user.id}_{unique_id}.{file_extension}"
+        
         file_content = image.file.read()
 
         response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to upload image")
-
+        if response.error:
+            raise HTTPException(status_code=500, detail=f"Failed to upload image: {response.error.message}")
+        
         image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
 
     new_product = Product(
@@ -159,14 +164,16 @@ async def update_product(
     
     if product.image:
         bucket_name = "product_images"
-        file_name = f"{product_id}_{product.image.filename}"
+        
+        unique_id = uuid.uuid4().hex
+        file_extension = product.image.filename.split(".")[-1] 
+        file_name = f"{product_id}_{unique_id}.{file_extension}"
         
         file_content = await product.image.read()
         
         response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
-        
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to upload image")
+        if response.error:
+            raise HTTPException(status_code=500, detail=f"Failed to upload image: {response.error.message}")
         
         image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
         db_product.image = image_url

@@ -8,6 +8,7 @@ import os
 from pydantic import ValidationError
 from app.supabase import create_client, SUPABASE_URL, SUPABASE_KEY
 from dotenv import load_dotenv
+import uuid
 
 load_dotenv()
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -20,7 +21,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=schemas.UserBase)
-def create_user(
+async def create_user(
     name: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
@@ -42,12 +43,15 @@ def create_user(
         raise HTTPException(status_code=400, detail="Email is already registered")
     
     bucket_name = "profile_images"
-    file_name = f"{validated_user.email}_{profile_image.filename}"
-    file_content = profile_image.file.read()
+    unique_id = uuid.uuid4().hex
+    file_extension = profile_image.filename.split(".")[-1]
+    file_name = f"{validated_user.email}_{unique_id}.{file_extension}"
+    
+    file_content = await profile_image.read() 
 
     response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Failed to upload profile image")
+    if response.error: 
+        raise HTTPException(status_code=500, detail=f"Failed to upload profile image: {response.error.message}")
 
     profile_image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
 
