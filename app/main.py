@@ -20,11 +20,11 @@ app = FastAPI(
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-origins = "https://my-products-frontend.vercel.app"
+origins = os.getenv("ALLOWED_ORIGINS").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origins],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
