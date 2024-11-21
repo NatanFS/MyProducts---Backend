@@ -30,6 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return {"message": "CORS is configured!"}
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     errors = [
