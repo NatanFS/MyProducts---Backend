@@ -47,7 +47,7 @@ def create_product(
         file_content = image.file.read()
 
         response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
-        if response.error:
+        if not response.data: 
             raise HTTPException(status_code=500, detail=f"Failed to upload image: {response.error.message}")
         
         image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
@@ -172,7 +172,7 @@ async def update_product(
         file_content = await product.image.read()
         
         response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
-        if response.error:
+        if not response.data: 
             raise HTTPException(status_code=500, detail=f"Failed to upload image: {response.error.message}")
         
         image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"

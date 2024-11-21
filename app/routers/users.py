@@ -50,7 +50,7 @@ async def create_user(
     file_content = await profile_image.read() 
 
     response = supabase.storage.from_(bucket_name).upload(file_name, file_content)
-    if response.error: 
+    if not response.data:  
         raise HTTPException(status_code=500, detail=f"Failed to upload profile image: {response.error.message}")
 
     profile_image_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{file_name}"
