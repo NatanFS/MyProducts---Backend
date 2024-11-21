@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 import uvicorn
+import os 
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -19,10 +20,7 @@ app = FastAPI(
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-origins = [
-    "http://localhost:3000", 
-    "http://127.0.0.1:3000",
-]
+origins = os.getenv("ALLOWED_ORIGINS").split(",")
 
 
 app.add_middleware(
